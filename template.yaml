@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Kiro ChatOps — Slack slash command with AI-powered repo analysis
+
+Parameters:
+  EcrImageUri:
+    Type: String
+    Description: ECR image URI for the Worker Lambda (e.g., 123456789.dkr.ecr.us-east-1.amazonaws.com/kiro-worker:latest)
+
+Resources:
+  DispatcherFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.12
+      CodeUri: dispatcher/
+      Timeout: 10
+      MemorySize: 256
+      Environment:
+        Variables:
+          WORKER_FUNCTION_NAME: !Ref WorkerFunction
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref WorkerFunction
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:kiro-chatops/slack-signing-secret-??????"
+      Events:
+        SlackCommand:
+          Type: Api
+          Properties:
+            Path: /slack/command
+            Method: POST
+
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: !Ref EcrImageUri
+      Timeout: 600
+      MemorySize: 1024
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:kiro-chatops/git-token-??????"
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:kiro-chatops/kiro-api-key-??????"
+
+Outputs:
+  ApiEndpoint:
+    Description: "Use this as the Slack slash command Request URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack/command"
+  DispatcherFunctionName:
+    Description: "Dispatcher Lambda function name"
+    Value: !Ref DispatcherFunction
+  WorkerFunctionName:
+    Description: "Worker Lambda function name"
+    Value: !Ref WorkerFunction
