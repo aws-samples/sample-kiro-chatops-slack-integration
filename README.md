@@ -1,6 +1,6 @@
 # Kiro ChatOps Kit
 
-> **Important:** This is sample code for educational purposes only. It is not intended for production use without further hardening, testing, and review. Use at your own risk.
+> **Important:** This is sample code for non-production usage. You should work with your security and legal teams to meet your organizational security, regulatory and compliance requirements before deployment.
 >
 > This sample is provided as-is under the [MIT-0 license](LICENSE).
 
